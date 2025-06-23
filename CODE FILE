@@ -1,0 +1,72 @@
+//SMART NOTICE BOARD USING ESP32 WROOM
+//CODING
+#include <MD_Parola.h>
+#include <MD_MAX72XX.h>
+#include <SPI.h>
+#include "BluetoothSerial.h"  
+// Include BluetoothSerial library for ESP32
+// Define hardware type, number of devices, and pin connections
+#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
+#define MAX_DEVICES 12  
+// Number of cascaded MAX7219 modules
+#define CLK_PIN   18  // SCK
+#define DATA_PIN  23  // MOSI
+#define CS_PIN    5   // Chip Select
+
+// Create a Parola object for the MAX7219
+MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+// Create a BluetoothSerial object for Bluetooth communication
+BluetoothSerial ESP_BT;
+
+// Buffer to hold incoming Bluetooth message
+String incomingData = "";  
+// Use a String to store the incoming Bluetooth data
+// Text to display
+char message[100] = "Welcome to Smart Notice Board!";  // Default message
+
+void setup() {
+  // Initialize serial communication for debugging
+  Serial.begin(115200);
+  
+  // Initialize Bluetooth with a device name
+  ESP_BT.begin("ESP32_BT");
+  Serial.println("Bluetooth Device is Ready to Pair");
+
+// Initialize the MAX7219 display
+  myDisplay.begin();
+  myDisplay.setIntensity(5);  
+// Set brightness level (0 to 15)
+  myDisplay.setTextAlignment(PA_LEFT);  
+// Align text to start at the left edge
+
+ // *Set scrolling speed for fast scrolling*
+  myDisplay.setSpeed(1);  
+// Super fast scrolling speed (lower value for faster scrolling)
+
+// Set the display effect for the text, scrolling across 12 MAX7219 displays
+myDisplay.displayText(message, PA_LEFT, myDisplay.getSpeed(), 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+}
+
+void loop() {
+// Check for incoming Bluetooth data
+  if (ESP_BT.available()) {
+  // Read the incoming data
+    incomingData = ESP_BT.readString();  
+// Read the entire message from Bluetooth
+// Print the received data to the serial monitor (for debugging)
+    Serial.println("Received via Bluetooth: " + incomingData);
+// Convert the incoming String data to a char array
+    incomingData.toCharArray(message, incomingData.length() + 1);
+// Update the text on the LED matrix
+myDisplay.displayText(message, PA_LEFT, myDisplay.getSpeed(), 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+  }
+// Update the display to keep scrolling the text
+  if (myDisplay.displayAnimate()) {
+    myDisplay.displayReset();
+  }
+
+  // Remove or reduce any delays
+  // Optional: Send periodic status updates via Bluetooth (shorten the delay if needed)
+  ESP_BT.println("ESP32 is running");
+  delay(100);  // Short delay (100ms)
+}
